@@ -13,7 +13,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: bitcoinfuzz
-        key: bitcoinfuzz-build-${{ inputs.os }}-${{ github.sha }}
+        key: bitcoinfuzz-build-${{ inputs.os }}-${{ github.sha }}-${{ github.run_id }}
 
     - name: Setup environment - macOS
       if: ${{ inputs.os == 'macos-14' }}

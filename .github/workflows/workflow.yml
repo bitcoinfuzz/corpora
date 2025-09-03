@@ -150,7 +150,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: bitcoinfuzz
-          key: bitcoinfuzz-build-${{ matrix.os }}-${{ github.sha }}
+          key: bitcoinfuzz-build-${{ matrix.os }}-${{ github.sha }}-${{ github.run_id }}
 
   test:
     needs: build
