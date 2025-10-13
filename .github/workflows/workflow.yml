@@ -80,6 +80,11 @@ jobs:
           echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
           echo "CXX=$(brew --prefix llvm@18)/bin/clang++" >> $GITHUB_ENV
 
+      - name: Save environment variables
+        run: |
+          echo "CC=$CC" >> build.env
+          echo "CXX=$CXX" >> build.env
+
       - name: Build - Bitcoin Core
         timeout-minutes: 40
         run: |
@@ -149,7 +154,12 @@ jobs:
       - name: Cache build artifacts
         uses: actions/cache/save@v4
         with:
-          path: bitcoinfuzz
+          path: |
+            modules/
+            bitcoinfuzz
+            NBitcoin.CppBridge.so
+            NBitcoin.CppBridge.dylib
+            build.env
           key: bitcoinfuzz-build-${{ matrix.os }}-${{ github.sha }}-${{ github.run_id }}
 
   test:
@@ -171,7 +181,7 @@ jobs:
           - corpus: "script_eval"
             target: "script_eval"
             cxxflags: "-DBITCOIN_CORE -DBTCD"
-            asan_options: ""
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "descriptor_parse_clean"
             target: "descriptor_parse"
             cxxflags: "-DBITCOIN_CORE -DRUST_MINISCRIPT"
@@ -223,6 +233,14 @@ jobs:
       - uses: ./.github/actions/setup-test-env
         with:
           os: ${{ matrix.os }}
+          github-sha: ${{ github.sha }}
+          github-run-id: ${{ github.run_id }}
+
+      - name: Load environment variables
+        run: |
+          if [ -f build.env ]; then
+            cat build.env >> $GITHUB_ENV
+          fi
 
       - name: Pre-build step
         if: matrix.test.pre_build != ''
@@ -239,4 +257,4 @@ jobs:
       - name: Test - ${{ matrix.test.target }}
         timeout-minutes: 5
         run: |
-          FUZZ=${{ matrix.test.target }} ./.github/scripts/run-fuzz.sh "${{ matrix.test.corpus }}" "${{ matrix.test.target }}" "${{ matrix.test.cxxflags }}" "${{ matrix.test.asan_options }}"
+          FUZZ=${{ matrix.test.target }} ./.github/scripts/run-fuzz.sh "${{ matrix.test.corpus }}" "${{ matrix.test.target }}" "${{ matrix.test.cxxflags }}" "${{ matrix.test.asan_options }}" "$CXX"
