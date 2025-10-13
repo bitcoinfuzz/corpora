@@ -1,20 +1,28 @@
 name: Setup Test Environment
 description: Sets up the environment for a test job, including repo checkout, cache restore, and macOS-specific setup.
-
 inputs:
   os:
     description: Operating system
     required: true
-
+  github-sha:
+    description: GitHub SHA
+    required: true
+  github-run-id:
+    description: GitHub Run ID
+    required: true
 runs:
   using: "composite"
   steps:
     - name: Restore build artifacts
       uses: actions/cache/restore@v4
       with:
-        path: bitcoinfuzz
-        key: bitcoinfuzz-build-${{ inputs.os }}-${{ github.sha }}-${{ github.run_id }}
-
+        path: |
+          modules/
+          bitcoinfuzz
+          NBitcoin.CppBridge.so
+          NBitcoin.CppBridge.dylib
+          build.env
+        key: bitcoinfuzz-build-${{ inputs.os }}-${{ inputs.github-sha }}-${{ inputs.github-run-id }}
     - name: Setup environment - macOS
       if: ${{ inputs.os == 'macos-14' }}
       shell: bash
