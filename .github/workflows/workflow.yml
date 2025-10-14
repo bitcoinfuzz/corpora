@@ -214,7 +214,6 @@ jobs:
             target: "deserialize_invoice"
             cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT11"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
-            pre_build: "(cd ./bitcoinfuzz/modules/bitcoin && make clean)"
             setup_java: "true"
           - corpus: "transaction_eval"
             target: "transaction_eval"
@@ -225,7 +224,10 @@ jobs:
             cxxflags: "-DLDK -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
             setup_java: "true"
-            pre_build: "(cd ./bitcoinfuzz/modules/bitcoin && make clean)"
+          - corpus: "parse_p2p_lightning_message"
+            target: "parse_p2p_lightning_message"
+            cxxflags: "-DLDK -DCLIGHTNING -DLND -DCUSTOM_MUTATOR_P2P_LIGHTNING_MESSAGE"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
 
     steps:
       - name: Checkout repo
