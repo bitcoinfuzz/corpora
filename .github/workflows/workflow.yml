@@ -224,6 +224,7 @@ jobs:
             target: "deserialize_offer"
             cxxflags: "-DLDK -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
+            setup_java: "true"
             pre_build: "(cd ./bitcoinfuzz/modules/bitcoin && make clean)"
 
     steps:
