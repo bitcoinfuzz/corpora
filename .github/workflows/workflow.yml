@@ -106,7 +106,7 @@ jobs:
       - name: Build - custommutator
         timeout-minutes: 40
         run: |
-          cd bitcoinfuzz/modules/custommutator && make
+          cd bitcoinfuzz/custommutator && make
 
       - name: Build - rust bitcoin
         timeout-minutes: 5
