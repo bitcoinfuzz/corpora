@@ -23,16 +23,7 @@ runs:
           NBitcoin.CppBridge.dylib
           build.env
         key: bitcoinfuzz-build-${{ inputs.os }}-${{ inputs.github-sha }}-${{ inputs.github-run-id }}
-    - name: Setup environment - macOS
-      if: ${{ inputs.os == 'macos-14' }}
-      shell: bash
-      run: |
-        brew install llvm@18
-        echo "$(brew --prefix llvm@18)/bin" >> $GITHUB_PATH
-        echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
-        echo "CXX=$(brew --prefix llvm@18)/bin/clang++" >> $GITHUB_ENV
-    - name: Setup environment - Ubuntu
-      if: ${{ inputs.os == 'ubuntu-24.04' }}
+    - name: Setup environment
       shell: bash
       run: |
         sudo apt-get update
