@@ -4,11 +4,9 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-24.04]
 
     steps:
       - name: Checkout repo
@@ -42,19 +40,11 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Setup Python and install embit
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: |
-          python -m pip install --upgrade pip
-          pip install -r bitcoinfuzz/modules/embit/requirements.txt
-          pip install mako
 
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y lowdown libsodium-dev
+          sudo apt-get install -y lowdown libsodium-dev libboost-all-dev
 
       - name: Setup common environment
         run: |
@@ -68,92 +58,54 @@ jobs:
           echo "CC=$CC" >> build.env
           echo "CXX=$CXX" >> build.env
 
-      - name: Build - Bitcoin Core
+      - name: Setup Python and install embit and pybitcoinkernel
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r bitcoinfuzz/modules/embit/requirements.txt
+          pip install -r bitcoinfuzz/modules/pybitcoinkernel/requirements.txt
+          pip install mako
+
+      - name: Build Modules
         timeout-minutes: 40
         run: |
-          cd bitcoinfuzz/modules/bitcoin && make
-
-      - name: Build - custommutator
-        timeout-minutes: 40
-        run: |
-          cd bitcoinfuzz/custommutator && make
-
-      - name: Build - rust bitcoin
-        timeout-minutes: 5
-        run: |
-          rustup default nightly
-          cd bitcoinfuzz/modules/rustbitcoin && make cargo && make
-
-      - name: Build - rust miniscript
-        timeout-minutes: 5
-        run: |
-          rustup default nightly
-          cd bitcoinfuzz/modules/rustminiscript && make cargo && make
-
-      - name: Build - btcd
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/btcd && make
-
-      - name: Build - embit
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/embit && make
-
-      - name: Build - lnd
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/lnd && make
-
-      - name: Build - ldk
-        timeout-minutes: 5
-        run: |
-          rustup default nightly
-          cd bitcoinfuzz/modules/ldk && make cargo && make
-
-      - name: Build - nlightning
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/nlightning && make
-
-      - name: Build - clightning
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/clightning && make
-
-      - name: Build - eclair
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/eclair && make
-
-      - name: Build - nbitcoin
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/nbitcoin && make
-      
-      - name: Build - lightning-kmp
-        timeout-minutes: 5
-        run: |
-          cd bitcoinfuzz/modules/lightningkmp && make
+          cd bitcoinfuzz && CXXFLAGS="-DBITCOIN_CORE \
+          -DRUST_BITCOIN \
+          -DRUSTBITCOINKERNEL \
+          -DRUST_MINISCRIPT \
+          -DBTCD \
+          -DNBITCOIN \
+          -DEMBIT \
+          -DPYBITCOINKERNEL \
+          -DLND \
+          -DLDK \
+          -DNLIGHTNING \
+          -DLIGHTNING_KMP \
+          -DBITCOINJ \
+          -DCLIGHTNING \
+          -DECLAIR \
+          -DDECRED_SECP256K1 \
+          -DSECP256K1 \
+          -DCUSTOM_MUTATOR_P2P_MESSAGE" \
+          ONLY_MODULES=1 \
+          ./auto_build.py
 
       - name: Cache build artifacts
         uses: actions/cache/save@v4
         with:
           path: |
-            modules/
             bitcoinfuzz
-            NBitcoin.CppBridge.so
-            NBitcoin.CppBridge.dylib
             build.env
           key: bitcoinfuzz-build-${{ matrix.os }}-${{ github.sha }}-${{ github.run_id }}
 
   test:
     needs: build
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
         test:
           - corpus: "script"
             target: "script"
@@ -165,7 +117,7 @@ jobs:
             asan_options: ""
           - corpus: "script_eval"
             target: "script_eval"
-            cxxflags: "-DBITCOIN_CORE -DBTCD"
+            cxxflags: "-DBITCOIN_CORE -DBTCD -DNBITCOIN"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "descriptor_parse_clean"
             target: "descriptor_parse"
@@ -175,10 +127,6 @@ jobs:
             target: "miniscript_parse"
             cxxflags: "-DBITCOIN_CORE -DRUST_MINISCRIPT"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "script_asm"
-            target: "script_asm"
-            cxxflags: "-DBITCOIN_CORE -DBTCD"
-            asan_options: ""
           - corpus: "address_parse"
             target: "address_parse"
             cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD"
@@ -186,6 +134,10 @@ jobs:
           - corpus: "psbt_parse_clean"
             target: "psbt_parse"
             cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DNBITCOIN"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "kernel_block"
+            target: "kernel_block"
+            cxxflags: "-DPYBITCOINKERNEL -DRUSTBITCOINKERNEL"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "cmpctblocks_parse"
             target: "cmpctblocks_parse"
@@ -200,10 +152,6 @@ jobs:
             cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT11"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
             setup_java: "true"
-          - corpus: "transaction_eval"
-            target: "transaction_eval"
-            cxxflags: "-DBITCOIN_CORE -DBTCD"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "deserialize_offer_clean"
             target: "deserialize_offer"
             cxxflags: "-DLDK -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
@@ -216,6 +164,26 @@ jobs:
           - corpus: "bip32_master_keygen"
             target: "bip32_master_keygen"
             cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "private_to_public_key"
+            target: "private_to_public_key"
+            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "sign_compact"
+            target: "sign_compact"
+            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "sign_der"
+            target: "sign_der"
+            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "sign_verify"
+            target: "sign_verify"
+            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DCUSTOM_MUTATOR_SECP256K1_SIGNATURE"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "ecdh"
+            target: "ecdh"
+            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
 
     steps:

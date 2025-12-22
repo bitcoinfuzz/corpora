@@ -17,10 +17,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: |
-          modules/
           bitcoinfuzz
-          NBitcoin.CppBridge.so
-          NBitcoin.CppBridge.dylib
           build.env
         key: bitcoinfuzz-build-${{ inputs.os }}-${{ inputs.github-sha }}-${{ inputs.github-run-id }}
     - name: Setup environment
