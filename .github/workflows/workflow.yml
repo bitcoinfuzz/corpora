@@ -190,6 +190,10 @@ jobs:
             target: "ecdh"
             cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "decode_ellswift"
+            target: "decode_ellswift"
+            cxxflags: "-DBTCD -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
 
     steps:
       - name: Checkout repo
