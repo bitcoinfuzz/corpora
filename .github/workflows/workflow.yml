@@ -90,7 +90,9 @@ jobs:
           -DSECP256K1 \
           -DNBITCOIN_SECP256K1 \
           -DRUST_K256 \
-          -DCUSTOM_MUTATOR_P2P_MESSAGE" \
+          -DCUSTOM_MUTATOR_P2P_MESSAGE \
+          -DRUSTREEXO \
+          -DUTREEXO" \
           ONLY_MODULES=1 \
           ./auto_build.py
 
@@ -199,6 +201,10 @@ jobs:
           - corpus: "decode_ellswift"
             target: "decode_ellswift"
             cxxflags: "-DBTCD -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "stump_modify_add"
+            target: "stump_modify_add"
+            cxxflags: "-DRUSTREEXO -DUTREEXO"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
 
     steps:
