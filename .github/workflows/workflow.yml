@@ -44,7 +44,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y lowdown libsodium-dev libboost-all-dev
+          sudo apt-get install -y lowdown libsodium-dev libboost-all-dev autoconf automake libtool pkg-config
 
       - name: Setup common environment
         run: |
@@ -58,7 +58,7 @@ jobs:
           echo "CC=$CC" >> build.env
           echo "CXX=$CXX" >> build.env
 
-      - name: Setup Python and install embit and pybitcoinkernel
+      - name: Setup Python and install embit, pybitcoinkernel and pycoin
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -66,6 +66,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r bitcoinfuzz/modules/embit/requirements.txt
           pip install -r bitcoinfuzz/modules/pybitcoinkernel/requirements.txt
+          pip install -r bitcoinfuzz/modules/pycoin/requirements.txt
           pip install mako
 
       - name: Build Modules
@@ -92,7 +93,10 @@ jobs:
           -DRUST_K256 \
           -DCUSTOM_MUTATOR_P2P_MESSAGE \
           -DRUSTREEXO \
-          -DUTREEXO" \
+          -DUTREEXO \
+          -DBITCOINS \
+          -DPYCOIN \
+          -DLIBWALLY_CORE" \
           ONLY_MODULES=1 \
           ./auto_build.py
 
