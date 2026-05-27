@@ -87,6 +87,8 @@ jobs:
           -DBITCOINJ \
           -DCLIGHTNING \
           -DECLAIR \
+          -DLIBWALLY_CORE \
+          -DPYCOIN \
           -DDECRED_SECP256K1 \
           -DSECP256K1 \
           -DNBITCOIN_SECP256K1 \
@@ -175,7 +177,7 @@ jobs:
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "bip32_master_keygen"
             target: "bip32_master_keygen"
-            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ"
+            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ -DLIBWALLY_CORE -DEMBIT -DPYCOIN -DBITCOINS"
             setup_java: "true"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "private_to_public_key"
