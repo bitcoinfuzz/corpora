@@ -221,7 +221,10 @@ jobs:
             cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ -DBITCOINS -DPYCOIN -DEMBIT -DLIBWALLY_CORE -DCUSTOM_MUTATOR_EXTENDED_KEY"
             setup_java: "true"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
-
+          - corpus: "roundtrip_ellswift"
+            target: "roundtrip_ellswift"
+            cxxflags: "-DBTCD -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
