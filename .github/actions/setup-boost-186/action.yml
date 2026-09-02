@@ -1,0 +1,33 @@
+name: Setup Boost 1.86
+description: Restores or builds the Boost 1.86 toolchain required by libbitcoin-system.
+runs:
+  using: composite
+  steps:
+    - name: Restore Boost 1.86 cache
+      id: boost-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.tool_cache }}/bitcoinfuzz/boost-1.86.0
+        key: boost-1.86.0-${{ runner.os }}-clang-${{ hashFiles('.github/actions/setup-boost-186/**') }}
+
+    - name: Build Boost 1.86
+      shell: bash
+      env:
+        BOOST_PREFIX: ${{ runner.tool_cache }}/bitcoinfuzz/boost-1.86.0
+        BOOST_VERSION: 1.86.0
+        BOOST_URL: https://github.com/boostorg/boost/releases/download/boost-1.86.0/boost-1.86.0-cmake.tar.gz
+        BOOST_LIBRARIES: iostreams;locale;program_options;thread;url;test;regex;filesystem;system;date_time;chrono;atomic;random;container;charconv;json
+        CC: /usr/bin/clang
+        CXX: /usr/bin/clang++
+      run: bash "${{ github.action_path }}/install-boost.sh"
+
+    - name: Save Boost 1.86 cache
+      if: ${{ steps.boost-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.tool_cache }}/bitcoinfuzz/boost-1.86.0
+        key: boost-1.86.0-${{ runner.os }}-clang-${{ hashFiles('.github/actions/setup-boost-186/**') }}
+
+    - name: Export BOOST_ROOT
+      shell: bash
+      run: echo "BOOST_ROOT=${{ runner.tool_cache }}/bitcoinfuzz/boost-1.86.0" >> "$GITHUB_ENV"
