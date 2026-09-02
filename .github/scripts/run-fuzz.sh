@@ -7,6 +7,10 @@ CXXFLAGS="$3"
 ASAN_OPTIONS="${4:-}"
 CXX="${5}"
 
+# Remove the fixed arguments in order to forward
+# any extra arguments to libFuzzer
+shift 5
+
 if [ -d "./${CORPUS_DIR}" ]; then
   echo "Using corpora for ${TARGET}"
   cd bitcoinfuzz
@@ -14,7 +18,7 @@ if [ -d "./${CORPUS_DIR}" ]; then
   export CXX="${CXX}"
   [[ -n "${ASAN_OPTIONS}" ]] && export ASAN_OPTIONS="${ASAN_OPTIONS}"
   make
-  FUZZ="${TARGET}" ./bitcoinfuzz -runs=1 "../${CORPUS_DIR}"
+  FUZZ="${TARGET}" ./bitcoinfuzz -runs=1 "$@" "../${CORPUS_DIR}"
 else
   echo "Corpus ./${CORPUS_DIR} does not exist. Skipping."
 fi
