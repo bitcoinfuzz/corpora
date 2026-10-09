@@ -61,7 +61,7 @@ jobs:
           echo "CC=/usr/bin/clang" >> $GITHUB_ENV
           echo "CXX=/usr/bin/clang++" >> $GITHUB_ENV
 
-      - name: Setup Python and install embit, pybitcoinkernel, pycoin and electrum
+      - name: Setup Python and install embit, pybitcoinkernel, pycoin, pyhdwallet and electrum
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -70,6 +70,7 @@ jobs:
           pip install -r bitcoinfuzz/modules/embit/requirements.txt
           pip install -r bitcoinfuzz/modules/pybitcoinkernel/requirements.txt
           pip install -r bitcoinfuzz/modules/pycoin/requirements.txt
+          pip install -r bitcoinfuzz/modules/pyhdwallet/requirements.txt
           pip install -r bitcoinfuzz/modules/electrum/requirements.txt
           pip install mako
 
@@ -79,6 +80,7 @@ jobs:
         run: |
           CXXFLAGS="-DBITCOIN_CORE \
           -DRUST_BITCOIN \
+          -DBITCOIN_RS \
           -DRUSTBITCOINKERNEL \
           -DRUST_MINISCRIPT \
           -DBITCOINERLAB_MINISCRIPT \
@@ -111,6 +113,7 @@ jobs:
           -DRUSTREEXO \
           -DUTREEXO \
           -DPYCOIN \
+          -DPYHDWALLET \
           -DELECTRUM \
           -DLIBBITCOIN_SYSTEM" \
           ONLY_MODULES=1 \
@@ -145,7 +148,7 @@ jobs:
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "deserialize_block"
             target: "deserialize_block"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DLIBBITCOIN_SYSTEM"
+            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBITCOIN_RS -DBTCD -DLIBBITCOIN_SYSTEM"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "script_eval"
             target: "script_eval"
@@ -167,11 +170,23 @@ jobs:
             target: "address_parse"
             cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DLIBBITCOIN_SYSTEM"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "bech32_roundtrip"
+            target: "bech32_roundtrip"
+            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DLIBWALLY_CORE"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "bech32_convert_bits"
+            target: "bech32_convert_bits"
+            cxxflags: "-DBITCOIN_CORE -DBTCD"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "psbt_parse_clean"
-            target: "psbt_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_PSBT -DBTCD -DNBITCOIN -DLIBWALLY_CORE -DBITCOINS -DCUSTOM_MUTATOR_PSBT"
+            target: "psbt_v0_parse"
+            cxxflags: "-DBITCOIN_CORE -DRUST_PSBT -DBTCD -DNBITCOIN -DLIBWALLY_CORE -DBITCOINS -DCUSTOM_MUTATOR_PSBT_V0"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
             setup_java: "true"
+          - corpus: "psbt_parse_clean"
+            target: "psbt_v2_parse"
+            cxxflags: "-DBITCOIN_CORE -DRUST_PSBT -DNBITCOIN -DLIBWALLY_CORE -DCUSTOM_MUTATOR_PSBT_V2"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "kernel_block"
             target: "kernel_block"
             cxxflags: "-DPYBITCOINKERNEL -DRUSTBITCOINKERNEL -DBITCOINKERNEL"
@@ -192,6 +207,10 @@ jobs:
             target: "parse_p2p_message"
             cxxflags: "-DRUST_BITCOIN -DBTCD -DCUSTOM_MUTATOR_P2P_MESSAGE"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "sighash_compute"
+            target: "sighash_compute"
+            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DGOCOIN"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "deserialize_invoice_clean"
             target: "deserialize_invoice"
             cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT11"
@@ -199,7 +218,7 @@ jobs:
             setup_java: "true"
           - corpus: "deserialize_offer_clean"
             target: "deserialize_offer"
-            cxxflags: "-DLDK -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
+            cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
             setup_java: "true"
           - corpus: "parse_p2p_lightning_message"
@@ -208,7 +227,7 @@ jobs:
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "bip32_master_keygen"
             target: "bip32_master_keygen"
-            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ -DLIBWALLY_CORE -DELECTRUM -DEMBIT -DPYCOIN -DBITCOINS -DLIBBITCOIN_SYSTEM"
+            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ -DLIBWALLY_CORE -DELECTRUM -DEMBIT -DPYCOIN -DPYHDWALLET -DBITCOINS -DLIBBITCOIN_SYSTEM"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
             setup_java: "true"
           - corpus: "private_to_public_key"
@@ -250,7 +269,7 @@ jobs:
             setup_java: "true"
           - corpus: "transaction_eval"
             target: "transaction_eval"
-            cxxflags: "-DBITCOIN_CORE -DBTCD -DLIBBITCOIN_SYSTEM"
+            cxxflags: "-DBITCOIN_CORE -DBITCOINKERNEL -DBTCD -DLIBBITCOIN_SYSTEM"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
           - corpus: "decode_ellswift"
             target: "decode_ellswift"
@@ -289,6 +308,10 @@ jobs:
           - corpus: "silentpayments_create_outputs"
             target: "silentpayments_create_outputs"
             cxxflags: "-DBDK_SP -DBLUEWALLET_SP -DSPDK -DSECP256K1"
+            asan_options: "detect_leaks=0:detect_container_overflow=0"
+          - corpus: "partial_merkle_tree"
+            target: "partial_merkle_tree"
+            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN"
             asan_options: "detect_leaks=0:detect_container_overflow=0"
 
     steps:
