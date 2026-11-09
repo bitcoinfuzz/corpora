@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
     outputs:
@@ -49,9 +49,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lowdown libsodium-dev libboost-all-dev npm nodejs quickjs libquickjs autoconf automake libtool pkg-config
-          # libbitcoin-system requires CMake >= 3.30; Ubuntu 24.04 ships 3.28.3.
-          # pip provides a binary cmake that takes precedence on PATH.
-          python3 -m pip install --upgrade --break-system-packages 'cmake>=3.30'
 
       - name: Install Boost 1.86 (libbitcoin-system requires >= 1.86)
         uses: ./.github/actions/setup-boost-186
@@ -132,7 +129,7 @@ jobs:
 
   test:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
