@@ -25,9 +25,6 @@ runs:
       run: |
         sudo apt-get update
         sudo apt-get install -y lowdown libsodium-dev
-        # libbitcoin-system requires CMake >= 3.30; Ubuntu 24.04 ships 3.28.3.
-        # pip provides a binary cmake that takes precedence on PATH.
-        python3 -m pip install --upgrade --break-system-packages 'cmake>=3.30'
 
     - name: Install Boost 1.86 (required for libbitcoin-system targets)
       uses: ./.github/actions/setup-boost-186

@@ -3,8 +3,26 @@ name: Check
 on: [push, pull_request]
 
 jobs:
+  select-tests:
+    runs-on: ubuntu-26.04
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed corpora and select tests
+        id: select
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./.github/scripts/select-test-matrix.sh "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
     outputs:
@@ -49,9 +67,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lowdown libsodium-dev libboost-all-dev npm nodejs quickjs libquickjs autoconf automake libtool pkg-config
-          # libbitcoin-system requires CMake >= 3.30; Ubuntu 24.04 ships 3.28.3.
-          # pip provides a binary cmake that takes precedence on PATH.
-          python3 -m pip install --upgrade --break-system-packages 'cmake>=3.30'
 
       - name: Install Boost 1.86 (libbitcoin-system requires >= 1.86)
         uses: ./.github/actions/setup-boost-186
@@ -131,183 +146,13 @@ jobs:
           retention-days: 1
 
   test:
-    needs: build
-    runs-on: ubuntu-24.04
+    needs: [build, select-tests]
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
-        test:
-          - corpus: "script"
-            target: "script"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "deserialize_block"
-            target: "deserialize_block"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBITCOIN_RS -DBTCD -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "script_eval"
-            target: "script_eval"
-            cxxflags: "-DBITCOIN_CORE -DNBITCOIN -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "verify_script"
-            target: "verify_script"
-            cxxflags: "-DBITCOIN_CORE -DBTCD -DGOCOIN -DNBITCOIN -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "descriptor_parse_clean"
-            target: "descriptor_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_MINISCRIPT"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "miniscript_parse_clean"
-            target: "miniscript_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_MINISCRIPT -DBITCOINERLAB_MINISCRIPT"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "address_parse"
-            target: "address_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "bech32_roundtrip"
-            target: "bech32_roundtrip"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DLIBWALLY_CORE"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "bech32_convert_bits"
-            target: "bech32_convert_bits"
-            cxxflags: "-DBITCOIN_CORE -DBTCD"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "psbt_parse_clean"
-            target: "psbt_v0_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_PSBT -DBTCD -DNBITCOIN -DLIBWALLY_CORE -DBITCOINS -DCUSTOM_MUTATOR_PSBT_V0"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-            setup_java: "true"
-          - corpus: "psbt_parse_clean"
-            target: "psbt_v2_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_PSBT -DNBITCOIN -DLIBWALLY_CORE -DCUSTOM_MUTATOR_PSBT_V2"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "kernel_block"
-            target: "kernel_block"
-            cxxflags: "-DPYBITCOINKERNEL -DRUSTBITCOINKERNEL -DBITCOINKERNEL"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "kernel_transaction"
-            target: "kernel_transaction"
-            cxxflags: "-DPYBITCOINKERNEL -DRUSTBITCOINKERNEL -DBITCOINKERNEL"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "kernel_block_check"
-            target: "kernel_block_check"
-            cxxflags: "-DBITCOINKERNEL -DPYBITCOINKERNEL -DRUSTBITCOINKERNEL"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "cmpctblocks_parse"
-            target: "cmpctblocks_parse"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "parse_p2p_message"
-            target: "parse_p2p_message"
-            cxxflags: "-DRUST_BITCOIN -DBTCD -DCUSTOM_MUTATOR_P2P_MESSAGE"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "sighash_compute"
-            target: "sighash_compute"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DGOCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "deserialize_invoice_clean"
-            target: "deserialize_invoice"
-            cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT11"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-            setup_java: "true"
-          - corpus: "deserialize_offer_clean"
-            target: "deserialize_offer"
-            cxxflags: "-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_BOLT12_OFFER"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-            setup_java: "true"
-          - corpus: "parse_p2p_lightning_message"
-            target: "parse_p2p_lightning_message"
-            cxxflags: "-DLDK -DCLIGHTNING -DLND -DCUSTOM_MUTATOR_P2P_LIGHTNING_MESSAGE"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "bip32_master_keygen"
-            target: "bip32_master_keygen"
-            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBTCD -DBITCOINJ -DLIBWALLY_CORE -DELECTRUM -DEMBIT -DPYCOIN -DPYHDWALLET -DBITCOINS -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-            setup_java: "true"
-          - corpus: "private_to_public_key"
-            target: "private_to_public_key"
-            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1 -DRUST_K256"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "pubkey_parse"
-            target: "pubkey_parse"
-            cxxflags: "-DSECP256K1 -DRUST_K256 -DDECRED_SECP256K1"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "sign_compact"
-            target: "sign_compact"
-            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1 -DRUST_K256"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "sign_der"
-            target: "sign_der"
-            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1 -DRUST_K256"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "merkle_root_compute"
-            target: "merkle_root_compute"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN -DBTCD -DGOCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "sign_verify"
-            target: "sign_verify"
-            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1 -DRUST_K256 -DCUSTOM_MUTATOR_SECP256K1_SIGNATURE"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "ecdh"
-            target: "ecdh"
-            cxxflags: "-DDECRED_SECP256K1 -DSECP256K1 -DNBITCOIN_SECP256K1 -DRUST_K256"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "sign_schnorr"
-            target: "sign_schnorr"
-            cxxflags: "-DBTCD -DSECP256K1 -DRUST_K256 -DNBITCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "bip32_deserialize_extended_key_clean"
-            target: "bip32_deserialize_extended_key"
-            cxxflags: "-DNBITCOIN -DRUST_BITCOIN -DBITCOIN_CORE -DBITCOINJ -DLIBWALLY_CORE -DELECTRUM -DEMBIT -DPYCOIN -DBITCOINS -DBTCD -DCUSTOM_MUTATOR_EXTENDED_KEY -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-            setup_java: "true"
-          - corpus: "transaction_eval"
-            target: "transaction_eval"
-            cxxflags: "-DBITCOIN_CORE -DBITCOINKERNEL -DBTCD -DLIBBITCOIN_SYSTEM"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "decode_ellswift"
-            target: "decode_ellswift"
-            cxxflags: "-DBTCD -DSECP256K1 -DRUST_BITCOIN"
-          - corpus: "roundtrip_ellswift"
-            target: "roundtrip_ellswift"
-            cxxflags: "-DBTCD -DSECP256K1 -DRUST_BITCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "schnorr_verify"
-            target: "schnorr_verify"
-            cxxflags: "-DBTCD -DSECP256K1 -DNBITCOIN_SECP256K1 -DCUSTOM_MUTATOR_SCHNORR_SIGNATURE"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "decode_onion"
-            target: "decode_onion"
-            cxxflags: "-DCLIGHTNING -DLND -DLDK -DCUSTOM_MUTATOR_ONION"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "stump_modify_add"
-            target: "stump_modify_add"
-            cxxflags: "-DRUSTREEXO -DUTREEXO"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "bip32_derive_from_path"
-            target: "bip32_derive_from_path"
-            cxxflags: "-DRUST_BITCOIN -DBITCOIN_CORE -DNBITCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "musig2_key_agg"
-            target: "musig2_key_agg"
-            cxxflags: "-DRUST_MUSIG2 -DSECP256K1"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "aes256_cbc"
-            target: "aes256_cbc"
-            cxxflags: "-DBITCOIN_CORE -DRUSTCRYPTO_AES"
-          - corpus: "musig2_sign_session"
-            target: "musig2_sign_session"
-            cxxflags: "-DRUST_MUSIG2 -DSECP256K1"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "silentpayments_create_outputs"
-            target: "silentpayments_create_outputs"
-            cxxflags: "-DBDK_SP -DBLUEWALLET_SP -DSPDK -DSECP256K1"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
-          - corpus: "partial_merkle_tree"
-            target: "partial_merkle_tree"
-            cxxflags: "-DBITCOIN_CORE -DRUST_BITCOIN"
-            asan_options: "detect_leaks=0:detect_container_overflow=0"
+        # Only entries selected from changed corpus folders are instantiated.
+        test: ${{ fromJSON(needs.select-tests.outputs.matrix) }}
 
     steps:
       - name: Checkout repo
@@ -333,6 +178,10 @@ jobs:
         run: |
           # run-fuzz.sh links the fuzzer against this runner's system Python, so
           # the enabled wrappers' packages must be installed there.
+          # coincurve 20 (pinned by hdwallet) has no cp314 wheel and its sdist fails with scikit-build-core >= 0.10.
+          echo 'scikit-build-core<0.10' > "$RUNNER_TEMP/build-constraints.txt"
+          export PIP_CONSTRAINT="$RUNNER_TEMP/build-constraints.txt"        # pip < 26
+          export PIP_BUILD_CONSTRAINT="$RUNNER_TEMP/build-constraints.txt"  # pip >= 26
           for module in embit pycoin pyhdwallet electrum pybitcoinkernel; do
             if [[ " ${{ matrix.test.cxxflags }} " == *" -D${module^^} "* ]]; then
               # py-bitcoinkernel builds Bitcoin Core's kernel, which finds Boost
@@ -340,7 +189,16 @@ jobs:
               if [[ ${module} == pybitcoinkernel ]]; then
                 sudo apt-get install -y libboost-dev
               fi
-              python3 -m pip install --break-system-packages -r "bitcoinfuzz/modules/${module}/requirements.txt"
+              if [[ ${module} == pybitcoinkernel ]]; then
+                # pybitcoinkernel's CMakeLists.txt version is incompatible with
+                # scikit-build-core<0.10, necessary for hdwallet's coincurve 20 dependency.
+                env -u PIP_CONSTRAINT -u PIP_BUILD_CONSTRAINT \
+                  python3 -m pip install --break-system-packages \
+                  -r "bitcoinfuzz/modules/${module}/requirements.txt"
+              else
+                python3 -m pip install --break-system-packages \
+                  -r "bitcoinfuzz/modules/${module}/requirements.txt"
+              fi
             fi
           done
 
