@@ -41,5 +41,6 @@
   {"corpus":"musig2_sign_session","target":"musig2_sign_session","cxxflags":"-DRUST_MUSIG2 -DSECP256K1","asan_options":"detect_leaks=0:detect_container_overflow=0"},
   {"corpus":"silentpayments_create_outputs","target":"silentpayments_create_outputs","cxxflags":"-DBDK_SP -DBLUEWALLET_SP -DSPDK -DSECP256K1","asan_options":"detect_leaks=0:detect_container_overflow=0"},
   {"corpus":"partial_merkle_tree","target":"partial_merkle_tree","cxxflags":"-DBITCOIN_CORE -DRUST_BITCOIN","asan_options":"detect_leaks=0:detect_container_overflow=0"},
-  {"corpus":"kernel_transaction_check","target":"kernel_transaction_check","cxxflags":"-DBITCOINKERNEL -DBTC_VERIFIED","asan_options":"detect_leaks=0:detect_container_overflow=0"}
+  {"corpus":"kernel_transaction_check","target":"kernel_transaction_check","cxxflags":"-DBITCOINKERNEL -DBTC_VERIFIED","asan_options":"detect_leaks=0:detect_container_overflow=0"},
+  {"corpus":"shachain","target":"shachain","cxxflags":"-DLDK -DLND -DCLIGHTNING -DECLAIR -DLIGHTNING_KMP -DCUSTOM_MUTATOR_SHACHAIN","asan_options":"detect_leaks=0:detect_container_overflow=0","setup_java":"true"}
 ]
